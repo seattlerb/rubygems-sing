@@ -1,0 +1,6 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+lib/rubygems/commands/sing_command.rb
+lib/rubygems_plugin.rb
