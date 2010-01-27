@@ -1,3 +1,9 @@
+=== 1.1.0 / 2010-01-26
+
+* 1 minor enhancement:
+
+  * Added blues scale and duration based on distance of ends. (topFunkay)
+
 === 1.0.0 / 2010-01-20
 
 * 1 major enhancement
