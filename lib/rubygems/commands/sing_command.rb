@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 require 'rubygems/command'
 require 'rubygems/version_option'
 require 'rubygems/text'
+require 'rubygems/installer'
 
 require 'midiator'
 require 'English'
@@ -15,13 +17,14 @@ class Gem::Commands::SingCommand < Gem::Command
   include MIDIator::Drums
 
   include Gem::VersionOption
-  # include Gem::Text
+  include Gem::LocalRemoteOptions
 
   def initialize
     super("sing", "\"Sing\" a gem's implementation",
           :version => Gem::Requirement.default)
 
     add_version_option
+    add_local_remote_options
   end
 
   def arguments # :nodoc:
@@ -39,16 +42,53 @@ class Gem::Commands::SingCommand < Gem::Command
   def execute
     name = get_one_gem_name
 
-    dep = Gem::Dependency.new name, options[:version]
-    specs = Gem.source_index.search dep
+    base = files = nil
 
-    if specs.empty? then
-      alert_error "No installed gem #{dep}"
-      terminate_interaction 1
+    if remote? then
+      version = options[:version] || Gem::Requirement.default
+      all = Gem::Requirement.default
+      dep = Gem::Dependency.new name, version
+
+      specs_and_sources = Gem::SpecFetcher.fetcher.fetch dep
+
+      spec, source_uri = specs_and_sources.sort_by { |spec,| spec.version }.last
+
+      alert_error "Could not find #{name} in any repository" unless spec
+
+      gem_path = File.join "/tmp", spec.file_name
+
+      unless File.file? gem_path then
+        path = Gem::RemoteFetcher.fetcher.download spec, source_uri
+        FileUtils.mv path, gem_path
+      end
+
+      dir_path = File.join "/tmp", File.basename(gem_path, '.gem')
+
+      unless File.directory? dir_path then
+        FileUtils.mkdir_p dir_path
+        Gem::Installer.new(gem_path, :unpack => true).unpack dir_path
+      end
+
+      Dir.chdir dir_path do
+        files = spec.require_paths.map { |d| Dir["#{d}/**/*.rb"] }.flatten.sort
+      end
+
+      base = dir_path
+    else
+      dep = Gem::Dependency.new name, options[:version]
+      specs = Gem.source_index.search dep
+
+      if specs.empty? then
+        alert_error "No installed gem #{dep}"
+        terminate_interaction 1
+      end
+
+      spec  = specs.last
+      base  = spec.full_gem_path
+      files = spec.lib_files
     end
 
-    spec = specs.last
-    base = spec.full_gem_path
+    $stdout.sync = true
 
     ##
     # Special thanks to Ben Bleything for midiator and help getting
@@ -67,31 +107,39 @@ class Gem::Commands::SingCommand < Gem::Command
 
     # TODO: eventually add ability to play actual AST
 
-    spec.lib_files.each do |path|
+    files.each do |path|
       full_path = File.join base, path
+
+      next unless File.file? full_path # rails is run by MORONS
+
       warn path
 
       line_number_of_last_end = 0
-      File.foreach(full_path) do |line|
+      File.foreach full_path do |line|
         if line =~ /^(\s+)end$/ then
-          number_of_lines_in_block = $INPUT_LINE_NUMBER - line_number_of_last_end
-          duration = case number_of_lines_in_block
-                     when  0 ..  3
-                       0.1
-                     when  4 .. 10
+          distance = $INPUT_LINE_NUMBER - line_number_of_last_end
+          note_character = "♩"
+          duration = case distance
+                     when 0 .. 3
+                       note_character = "♪"
+                       0.125
+                     when 4 .. 10
+                       note_character = "♩"
                        0.25
                      when 11 .. 30
+                       note_character = "d"
                        0.5
                      else
+                       note_character = "o"
                        1.0
                      end
-
-          duration *= 0.8 # tweaking for now...
-
           line_number_of_last_end = $INPUT_LINE_NUMBER
           num_spaces = $1.size
-          midi.play scale[ num_spaces / 2 ], duration
+
+          print "#{note_character} "
           print line
+          midi.play scale[ num_spaces / 2 ], duration
+          print "\n" * (duration * 4).to_i if Gem.configuration.really_verbose
         end
       end
 
