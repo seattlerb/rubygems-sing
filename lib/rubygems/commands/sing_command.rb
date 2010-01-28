@@ -11,7 +11,7 @@ require 'English'
 # gem command to "sing" the implementation of a gem.
 
 class Gem::Commands::SingCommand < Gem::Command
-  VERSION = '1.1.0'
+  VERSION = '1.2.0'
 
   include MIDIator::Notes
   include MIDIator::Drums

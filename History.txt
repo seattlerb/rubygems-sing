@@ -1,3 +1,11 @@
+=== 1.2.0 / 2010-01-27
+
+* 3 minor enhancements:
+
+  * Added --verbose, to print more like a player piano (blank lines in between).
+  * Added -r to sing gems you REALLY don't want to install (rails, sans deps).
+  * Added musical notes to output. (topFUNkay! OW!)
+
 === 1.1.0 / 2010-01-26
 
 * 1 minor enhancement:
