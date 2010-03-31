@@ -3,6 +3,7 @@ require 'rubygems/command'
 require 'rubygems/version_option'
 require 'rubygems/text'
 require 'rubygems/installer'
+require 'rubygems/local_remote_options'
 
 require 'midiator'
 require 'English'
