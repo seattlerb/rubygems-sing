@@ -117,7 +117,7 @@ class Gem::Commands::SingCommand < Gem::Command
 
       line_number_of_last_end = 0
       File.foreach full_path do |line|
-        if line =~ /^(\s+)end$/ then
+        if line =~ /^(\s+)(?:end|\})$/ then
           distance = $INPUT_LINE_NUMBER - line_number_of_last_end
           note_character = "♩"
           duration = case distance
